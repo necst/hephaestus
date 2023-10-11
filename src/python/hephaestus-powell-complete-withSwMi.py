@@ -46,8 +46,6 @@ from pynq import allocate
 import struct
 import statistics
 import argparse
-#import hephaestusAccelerators
-#import hephaestusAcceleratorsMapper as hephaestus
 import hephaestusNewFunctions as hephaestusNewFunctions
 import hephaestusWonderfulListMapper as hephaestus
 from hephaestusImageRegistration import *
@@ -136,7 +134,6 @@ def register_images(Ref_uint8, Flt_uint8, volume, filename):
     pa=[params[0][3], params[1][3], 0.0, params[0][0], 1.0, 1.0]
     
     Ref_uint8_ravel = torch.ravel(Ref_uint8)
-    #print(Ref_uint8_ravel.shape)
     optimal_params = optimize_powell(rng, pa, Ref_uint8_ravel, Flt_uint8,  volume) 
     params_trans=to_matrix_complete(optimal_params)
     flt_transform = transform(Flt_uint8, params_trans, volume)
@@ -145,7 +142,7 @@ def register_images(Ref_uint8, Flt_uint8, volume, filename):
     with open(filename, 'a') as file2:
                 file2.write("%s\n" % (end_single_sw - start_single_sw))
  
-    return (flt_transform)
+    return (params_trans)
 
 def compute_wrapper(args, hephaestus_pl, num_threads=1):
     config=args.config
@@ -164,7 +161,7 @@ def compute_wrapper(args, hephaestus_pl, num_threads=1):
         CT.sort(key=lambda var:[int(y) if y.isdigit() else y for y in re.findall(r'[^0-9]|[0-9]+',var)])
         assert len(CT) == len(PET)
         wonderful_list = the_list_of_wonderful_lists[0]
-        compute(CT, PET, args.volume, args.filename, curr_res, 0, k, wonderful_list, args.first_slice, args.last_slice, args.num_subvolumes)
+        compute(CT, PET, args.volume, args.filename, curr_res, k, wonderful_list, args.first_slice, args.last_slice, args.num_subvolumes)
         
 
 
@@ -218,8 +215,6 @@ def compute(CT, PET, volume, filename, curr_res, patient_id, wonderful_list, fir
     gc.collect()
 
     transform_matrix = register_images(refs3D, flts3D, len(CT[left:right]), filename)
-    #print('Trasformata:')
-    #print(transform_matrix)
 
     for index in range(N):
         couples = 0
@@ -249,8 +244,6 @@ def compute(CT, PET, volume, filename, curr_res, patient_id, wonderful_list, fir
             del Ref_img
             gc.collect()
             couples = couples + 1
-            #if couples >= int(volume / N):
-            #    break
         refs3D = torch.cat(refs)
         flts3D = torch.cat(flts)
         refs3D = torch.reshape(refs3D,(len(CT[int(index*volume/N):int(np.minimum(int((index+1)*volume/N), volume))]),512,512))
